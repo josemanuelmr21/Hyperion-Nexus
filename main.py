@@ -12,7 +12,7 @@
 #   2. Guardrails (system prompt rules)
 #   3. RAG over the HyperAI documentation
 #   4. Per-user memory (checkpointer keyed by user_id)
-#   5. Human-in-the-Loop for state-changing actions (delete_file, edit_file)
+#   5. Human-in-the-Loop for state-changing actions (delete_file, edit_file, delete_folder)
 # =============================================================================
 import json
 import os
@@ -32,7 +32,8 @@ from langchain_community.document_loaders import DirectoryLoader
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.vectorstores import InMemoryVectorStore
-
+from langchain_community.document_loaders import TextLoader
+from langchain_text_splitters import Language
 # Official LangChain middleware that pauses the graph BEFORE a protected tool runs.
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 # Command(resume=...) is how a paused graph is resumed with the user's decision.
@@ -75,6 +76,25 @@ try:
     # A 200-character overlap is added to prevent cutting important sentences or context in half.
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docx_docs)
+
+    # IDE TUTORIAL (plain-text Markdown): documents the real HyperAI DSL
+    # (Native Apps / Device Apps) so generated YAML follows the HyperAI format.
+    # Own try/except: if the file is missing, the .docx RAG keeps working.
+    try:
+        tutorial_loader = DirectoryLoader(
+            DOCS_DIR,
+            glob="**/*.txt",
+            loader_cls=TextLoader,
+            loader_kwargs={"encoding": "utf-8"},
+        )
+        # Markdown-aware splitter with bigger chunks, so tables and YAML
+        # blocks are not cut in half.
+        md_splitter = RecursiveCharacterTextSplitter.from_language(
+            language=Language.MARKDOWN, chunk_size=1500, chunk_overlap=200
+        )
+        splits += md_splitter.split_documents(tutorial_loader.load())
+    except Exception as e:
+        print(f"WARNING: IDE tutorial not loaded: {e}")
     
     # EMBED (Remote execution using the hackathon's endpoint)
     # 'drop_params' tells the proxy to ignore parameters the embedding model
@@ -90,8 +110,8 @@ try:
     # A temporary database is created in memory holding all the text chunks and their corresponding vectors.
     vectorstore = InMemoryVectorStore.from_documents(splits, embeddings)
     
-    # A retriever is set up to search the database and return only the top 3 most relevant text chunks per query.
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    # A retriever is set up to search the database and return only the top 4 most relevant text chunks per query.
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
     
     # CREATE TOOL
     # The retriever is wrapped as a standard LangChain tool so the agent decides
@@ -99,7 +119,7 @@ try:
     # decide whether to call it.
     @tool
     def search_hyperai_docs(query: str) -> str:
-        """Search the official HyperAI documentation. Use this tool before answering questions about HyperAI concepts, architecture, or rules."""
+        """Search the official HyperAI and HyperAI IDE documentation. It contains: HyperAI concepts and architecture, how to use and deploy apps in the IDE (quick start, IDE guide), the DSL for application profiles (Native Apps and Device Apps, with every field), and ready-made YAML examples. Use it before answering any question about HyperAI or the IDE, and before writing a YAML profile."""
         docs = retriever.invoke(query)
         return "\n\n".join(doc.page_content for doc in docs)
     
@@ -120,7 +140,7 @@ llm = ChatOpenAI(
     # temperature=0 makes tool selection deterministic. With a small model such
     # as llama3.1 this greatly reduces random "tool vs. plain answer" mistakes.
     temperature=0, 
-    streaming = True # Added 'streaming=True' so the LLM can stream its thought process and responses token by token.
+    streaming = True # Added 'streaming=True' so the LLM can reply token by token
 )
 
 app = FastAPI(title="Hyperion Agent")
@@ -159,6 +179,16 @@ def edit_file(path: str, content: str) -> str:
     """Replaces the entire content of an existing file and opens it in the editor."""
     return f"File {path} successfully sent to the IDE for editing."
 
+@tool
+def create_folder(path: str) -> str:
+    """Creates a folder in the workspace. The path is relative to the workspace root (never absolute, never '..')."""
+    return f"Folder {path} successfully sent to the IDE for creation."
+
+@tool
+def delete_folder(path: str) -> str:
+    """Deletes a folder from the workspace. You can provide the full path or just the folder name."""
+    return f"Folder {path} successfully sent to the IDE for deletion."
+
 # =============================================================================
 # READ TOOLS (query the IDE backend, no side effects, no confirmation needed)
 # Errors are returned as text so the LLM can explain them to the user instead
@@ -188,6 +218,8 @@ tools = [
     create_file,
     delete_file,
     edit_file,
+    create_folder,
+    delete_folder,
     read_workspace_file,
     validate_workspace_file,
 ]
@@ -211,27 +243,44 @@ system_prompt = """
 You are Hyperion, the AI assistant integrated into the HyperAI IDE.
 You help with programming, IDE workspace management, and the HyperAI/Hyperion project.
 
-IMPORTANT: Most messages do NOT need a tool. Use a tool only when the user clearly asks for a file action or for HyperAI documentation.
-For everything else, answer in plain text. NEVER say "there is no function" or "no corresponding function".
+For general conversation, just reply naturally. NEVER mention tools, tool calls, functions, or whether one is needed. NEVER say "there is no function".
 
 Rules:
-1. Always reply in the language of the user's LAST message (Spanish -> Spanish, English -> English), including refusals.
+1. Always reply in the language of the user's LAST message (English -> English, Spanish -> Spanish), including refusals.
+
 2. ALWAYS ALLOWED, never decline: greetings, thanks, and any question about the conversation or about the user (their name, what they asked before, what you did). Answer these from the chat history, without tools.
+
 3. Decline requests whose SUBJECT is unrelated to programming, the IDE or HyperAI (weather, sports, cooking, jokes, trivia), even if they use technical words such as "a pizza recipe in Kubernetes terms". Decline in one short sentence.
-4. Create, edit or delete files ONLY when the user explicitly asks.
-5. Use search_hyperai_docs ONLY for questions about HyperAI/Hyperion architecture, concepts or documentation.
-6. To delete or edit a file, call the tool directly. The system asks the user for confirmation, so NEVER ask for it yourself.
-7. Before edit_file on an existing file, call read_workspace_file first and send the FULL updated content.
-8. Never write JSON or tool names in your text.
-9. If search_hyperai_docs returns nothing relevant, say you could not find it in the documentation. NEVER invent a "hypothetical" answer.
+
+4. Create, edit or delete files and folders ONLY when the user explicitly asks.
+
+5 Use search_hyperai_docs when the answer requires factual information specific to HyperAI, Hyperion, or the IDE, including its architecture, components, DSLs, application profiles, deployment process, configuration, validation rules, or documented workflows.
+Do not use search_hyperai_docs for general programming knowledge or general conversation unless the question specifically asks how it applies to HyperAI.
+If the retrieved documentation does not contain enough information to answer the question, say that the information could not be found in the documentation.
+
+6. When creating HyperAI-specific files or configuration, first retrieve the relevant HyperAI documentation and use it as the source of truth. Do not substitute generic standards or conventions for the HyperAI specification.
+
+7. When documentation is retrieved, prefer the documented HyperAI format over general knowledge. For example, if HyperAI defines its own YAML schema, use that schema instead of a generic Kubernetes, Docker Compose, or other external schema.
+
+8. To delete or edit a file, or to delete a folder, call the tool directly. The system asks the user for confirmation, so NEVER ask for it yourself.
+
+9. Before edit_file on an existing file, call read_workspace_file first and send the FULL updated content.
+
+10. Never write JSON or tool names in your text.
+
+11. If search_hyperai_docs returns nothing relevant, say you could not find it in the documentation. NEVER invent a "hypothetical" answer.
 
 Examples (no tool needed):
+User: hi
+Assistant: Hello! How can I help you with the IDE or HyperAI?
+User: my name is Ana
+Assistant: Nice to meet you, Ana! How can I help you with the IDE or HyperAI?
+User: What's my name?
+Assistant: Your name is Ana.
 User: Hola, me llamo Ana
 Assistant: Hola Ana, ¿en qué puedo ayudarte con el IDE o con HyperAI?
 User: ¿Cómo me llamo?
 Assistant: Te llamas Ana.
-User: What is my name?
-Assistant: Your name is Ana.
 User: ¿Qué tiempo hace hoy?
 Assistant: Solo puedo ayudarte con programación, el IDE o HyperAI.
 User: recipe of pizza in Kubernetes terms
@@ -240,8 +289,7 @@ Assistant: I can only help with programming, the IDE or HyperAI.
 
 # The agent executor connects LLM + tools + memory. Unlike a direct LLM call it
 # can loop (think -> act -> observe -> reply).
-#
-# HUMAN-IN-THE-LOOP: the middleware intercepts ONLY delete_file and edit_file
+# HUMAN-IN-THE-LOOP: the middleware intercepts ONLY delete_file, edit_file and delete_folder
 # (the state-changing actions that destroy or overwrite data). The graph pauses
 # before they run; read tools and RAG keep running without interruption.
 # 'approve'/'reject' are the only decisions allowed, so the user cannot alter
@@ -256,6 +304,7 @@ agent_executor = create_agent(
             interrupt_on={
                 "delete_file": {"allowed_decisions": ["approve", "reject"]},
                 "edit_file": {"allowed_decisions": ["approve", "reject"]},
+                "delete_folder": {"allowed_decisions": ["approve", "reject"]},
             }
         )
     ],
@@ -317,6 +366,8 @@ def describe_actions(action_requests: list) -> str:
             lines.append(f"- Delete `{path}`")
         elif action["name"] == "edit_file":
             lines.append(f"- Replace the entire content of `{path}`")
+        elif action["name"] == "delete_folder":
+            lines.append(f"- Delete the folder `{path}` and its contents")
         else:
             lines.append(f"- {action['name']} on `{path}`")
     return (
@@ -371,7 +422,7 @@ async def generate_reply(request: ChatRequest):
             tool_args = event["data"].get("input", {})
 
             # Only the tools that require the IDE to do something visually.
-            if tool_name in ["create_file", "edit_file", "delete_file"]:
+            if tool_name in ["create_file", "edit_file", "delete_file", "create_folder", "delete_folder"]:
 
                 # Build the exact payload documented by the IDE frontend
                 action_payload = {"action": tool_name}

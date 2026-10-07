@@ -1,0 +1,871 @@
+# HyperAI IDE Tutorial
+
+> Tutorial for the HyperAI IDE component
+
+Tutorial for the IDE component of the EU-funded HYPER-AI project. Covers signing in, building application profiles with the HyperAI DSL (native and device apps), deploying workflows, and ready-to-use examples.
+
+# Getting started
+
+# Introduction
+
+Welcome to the **[HyperAI IDE](https://ide.hyperai.di.uoa.gr/)** tutorial.
+
+This documentation site covers the IDE component of the [HyperAI project](https://hyper-ai-project.eu/).
+
+## About HyperAI
+
+The demand for efficient data processing has surged in modern computing. However, traditional infrastructures face challenges in meeting the intensive requirements of diverse applications, from complex simulations to real-time analytics. What complicates matters is the varied nature of computing resources across the Cloud, Edge, and IoT domains, each presenting unique challenges and opportunities.
+
+In this context, the EU-funded HYPER-AI project aims to redefine data processing by harnessing distributed computing swarms. These are autonomous networks of interconnected nodes that dynamically adapt and optimise resources throughout the computing continuum. By implementing semantic representation and autonomic principles, HYPER-AI promises enhanced self-configuring, self-healing, and self-optimising capabilities.
+
+Visit the project website at [hyper-ai-project.eu](https://hyper-ai-project.eu/) for more information about the consortium, objectives, and outputs.
+
+## About the IDE component
+
+The IDE is the integrated development environment provided by HyperAI to help users build, run, and inspect AI workflows.
+
+Open it: [ide.hyperai.di.uoa.gr](https://ide.hyperai.di.uoa.gr/).
+
+## What's in this tutorial
+
+- **[Quick Start Demo](https://ide-tutorial.hyperai.di.uoa.gr/quick-start-demo/index.md)** — deploy your first web server with a few simple steps.
+- **[IDE Guide](https://ide-tutorial.hyperai.di.uoa.gr/ide-guide/index.md)** — how to interact with the IDE to build your projects.
+- **DSL Specification** — learn how to define the requirements of your applications, for [Native Apps](https://ide-tutorial.hyperai.di.uoa.gr/dsl/native-apps/index.md) and [Device Apps](https://ide-tutorial.hyperai.di.uoa.gr/dsl/devices/index.md).
+- **[Cookbook & Examples](https://ide-tutorial.hyperai.di.uoa.gr/cookbook/index.md)** — recipes and examples for building complex workflows.
+
+# Quick Start Demo
+
+Deploy your first web server on HyperAI with a few simple steps.
+
+Open the IDE at [ide.hyperai.di.uoa.gr](https://ide.hyperai.di.uoa.gr/) and follow along.
+
+## Step 0 — Publish your image to a whitelisted registry
+
+Before deploying, your container must live in a **public** registry whitelisted by HyperAI — for example [Docker Hub](https://hub.docker.com/). You'll reference it in [Step 3](#step-3) when building your Application Profile.
+
+Build the image locally:
+
+```
+docker build -t <user>/<image>:<tag> .
+```
+
+Push it to the registry:
+
+```
+docker push <user>/<image>:<tag>
+```
+
+Further reading
+
+Follow the official [Docker Hub quickstart](https://docs.docker.com/docker-hub/quickstart/) for more information.
+
+## Step 1 — Sign in
+
+When you open the IDE you are redirected to the HyperAI sign-in page. Enter your email and password and click **Sign In**.
+
+If you don't have an account yet, click **Register** and create one first.
+
+## Step 2 — Create a working directory for your app
+
+You can create a working directory for organizing your app, or group of apps. This is done through the Workspace Explorer by clicking **Create Folder**.
+
+## Step 3 — Create your Application Profile `.yaml`
+
+After creating the working directory, the application profile `.yaml` document must be created. Application profiles contain all the attributes of the app the user wants to run. Again this is done through the Workspace Explorer by clicking **Create File**. Name the file accordingly and add `.yaml` at the end.
+
+To build the profile, consult the DSL Specification: [Native Apps](https://ide-tutorial.hyperai.di.uoa.gr/dsl/native-apps/index.md) for native applications, or [Device Apps](https://ide-tutorial.hyperai.di.uoa.gr/dsl/devices/index.md) for applications meant to run on a device. You can also find ready-to-use examples in the [Cookbook & Examples](https://ide-tutorial.hyperai.di.uoa.gr/cookbook/index.md). This is where you reference the container image you pushed in [Step 0](#step-0).
+
+## Step 4 — Deployment
+
+When you are ready, click the **Deploy** button. Before this step, make sure each profile has been saved.
+
+In the popup window, select the workflow you want to deploy and click **Deploy**. Multiple profiles can be deployed at the same time.
+
+You will be asked to manually change the workflow name — if you don't want to, just skip it by clicking **OK**.
+
+## Step 5 — Start your workflows
+
+If you haven't received an error message, click the **Dashboard**. In the list of deployments, find the one you just deployed and press **Start**.
+
+This may take some time until the workflow status is **Running**.
+
+## Tips
+
+If you want to see live analytics of your workflow, click the **Metrics** button.
+# IDE Guide
+
+# IDE Guide
+
+How to interact with the HyperAI IDE to build your projects.
+
+Live: [ide.hyperai.di.uoa.gr](https://ide.hyperai.di.uoa.gr/).
+
+## Login / Signup
+
+Opening the IDE redirects you to the HyperAI sign-in page. Enter your email and password and click **Sign In**. New users can create an account through the **Register** link, and **Forgot Password?** starts a reset.
+
+## Using the Wizard
+
+The Wizard is a smart way to define your application in an easy way. Open it by clicking **New App Profile** in the top bar.
+
+You can either fill in the form or edit the **Wizard DSL** in the mini editor — the two stay in sync, and validation errors are shown live.
+
+When you finalize, click **Generate YAML** — the YAML is automatically sent to the main YAML editor.
+
+## Settings
+
+To customize the IDE, click **Settings** in the top bar. From there you can change the theme, the font size, and many more — or reset everything back to the defaults with **Reset Defaults**.
+# DSL Specification
+
+# Defining Native Applications
+
+A **Native Application** is described by an application profile — a YAML document with `applicationProfile` at its root — that defines the workload (container, VM, or binary), its runtime environment, and the requirements that govern where and how it runs.
+
+______________________________________________________________________
+
+## Profile Structure
+
+Every application profile follows this layout:
+
+```
+applicationProfile:
+  metadata:
+    # application identity and annotations
+  specs:
+    # runtime, resources, network, constraints, qos
+  status:
+    # runtime state, updated dynamically
+```
+
+| Field                         | Type   | Required | Description                                                  |
+| ----------------------------- | ------ | -------- | ------------------------------------------------------------ |
+| `applicationProfile.metadata` | object | ✅       | Application metadata — see [`metadata`](#metadata)           |
+| `applicationProfile.specs`    | object | ✅       | Application requirements — see the `specs` sections below    |
+| `applicationProfile.status`   | object | ❌       | Runtime state, updated dynamically — see [`status`](#status) |
+
+______________________________________________________________________
+
+## Field Reference
+
+Below we provide all ***mandatory*** (✅) and ***optional*** (❌) fields that are registered in the Hyper-AI platform.
+
+### `metadata` — Application Metadata
+
+| Field                      | Type                                               | Required | Example                                               | Description                                                         |
+| -------------------------- | -------------------------------------------------- | -------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `type`                     | string, `native`                                   | ✅       | `"native"`                                            | Application profile type: integration, native, or device.           |
+| `schemaVersion`            | string                                             | ✅       | `"1.1.0"` latest                                      | App profile schema version using semantic versioning (e.g., 1.0.0). |
+| `name`                     | string                                             | ✅       | `"hello-world-webserver"`                             | Globally unique application name for identification.                |
+| `version`                  | string                                             | ✅       | `"1.0.0"`                                             | Internal version identifier for the application instance.           |
+| `description`              | string                                             | ❌       | `"Nginx web server for HyperAI platform assessment."` | A short description of what the application does.                   |
+| `owner`                    | string                                             | ✅       | `"UoA-Team"`                                          | Person or organization responsible for this application.            |
+| `lifecyclePhase`           | string, enum: `development` `testing` `production` | ✅       | `"development"`                                       | Lifecycle stage: development, testing, or production.               |
+| `createdAt`                | string (RFC 3339)                                  | ❌       | `"2026-06-04T12:00:00Z"`                              | Creation timestamp in RFC 3339 format (UTC).                        |
+| `updatedAt`                | string (RFC 3339)                                  | ❌       | `"2026-06-04T12:30:00Z"`                              | Last modification timestamp in RFC 3339 format (UTC).               |
+| `annotations.intent`       | string                                             | ❌       | `"platform-demo"`                                     | Purpose of the application                                          |
+| `annotations.domain`       | string                                             | ❌       | `"education"`                                         | Classification of application (e.g., AI, Automotive, robotics)      |
+| `annotations.language`     | string                                             | ❌       | `"Python 3.10"`                                       | Programming language used by the application                        |
+| `annotations.dependencies` | list                                               | ❌       | `["fastapi", "uvicorn"]`                              | Required software libraries (e.g., ML frameworks)                   |
+
+______________________________________________________________________
+
+### `specs.runtime` — Runtime Requirements
+
+| Field                          | Type                                      | Required | Example                          | Description                                                       |
+| ------------------------------ | ----------------------------------------- | -------- | -------------------------------- | ----------------------------------------------------------------- |
+| `executionType`                | string, enum: `container` `vm`            | ✅       | `"container"`                    | Type of execution platform (e.g., container, vm, native, android) |
+| `entryPoint`                   | string                                    | ✅       | `"uvicorn"`                      | Path to the main script or command executed at container startup  |
+| `args`                         | list                                      | ✅       | `["main:app", "--port", "8000"]` | Arguments passed to the entry point command                       |
+| `baseOS.name`                  | string                                    | ✅       | `"python"`                       | Name of base OS (e.g., ubuntu)                                    |
+| `baseOS.version`               | string                                    | ✅       | `"3.10-slim"`                    | Version of the base OS (e.g., 20.04)                              |
+| `containerImage.uri`           | string                                    | ✅       | `"registry.example.com/org/app"` | OCI-compliant container image URI                                 |
+| `containerImage.tag`           | string                                    | ✅       | `"latest"`                       | Optional image tag (containers)                                   |
+| `hypervisor`                   | string, enum: `qemu` `kvm` `xen` `vmware` | ❌       | `"kvm"`                          | Hypervisor/manager (qemu, kvm, xen, vmware)                       |
+| `acceleratorRuntime[].name`    | string                                    | ❌       | `"cuda"`                         | Name of the runtime environment for accelerators                  |
+| `acceleratorRuntime[].version` | string                                    | ❌       | `"12.2"`                         | Version of the accelerator runtime                                |
+
+______________________________________________________________________
+
+### `specs.resources` — Resource Requirements
+
+| Field          | Type                    | Required | Example   | Description                                              |
+| -------------- | ----------------------- | -------- | --------- | -------------------------------------------------------- |
+| `cpu`          | string (>0, millicores) | ✅       | `"2000m"` | Number of CPU cores required (e.g., '1000m' for 1 core). |
+| `memory`       | string (`Mi` `Gi` `Ti`) | ✅       | `"10Gi"`  | Memory requirement.                                      |
+| `storage`      | string (`Mi` `Gi` `Ti`) | ✅       | `"1Gi"`   | Storage requirement (if needed).                         |
+| `gpu`          | integer (≥0)            | ❌       | `1`       | Required GPUs.                                           |
+| `tpu`          | integer (≥0)            | ❌       | `0`       | Required TPUs.                                           |
+| `accelerators` | integer (≥0)            | ❌       | `0`       | List of FPGAs, ASICs                                     |
+
+______________________________________________________________________
+
+### `specs.network` — Network Requirements
+
+| Field                    | Type                   | Required | Example     | Description                                                            |
+| ------------------------ | ---------------------- | -------- | ----------- | ---------------------------------------------------------------------- |
+| `ports[].port`           | integer                | ✅       | `8000`      | port number                                                            |
+| `ports[].protocol`       | string                 | ✅       | `"TCP"`     | protocol used by this port                                             |
+| `ports[].publicExposure` | boolean                | ❌       | `true`      | Whether the port is publicly exposed                                   |
+| `protocols`              | list                   | ❌       | `["HTTP"]`  | Application-level protocols used by the application (e.g., HTTP, gRPC) |
+| `networkBandwidthMin`    | string (`Mbps` `Gbps`) | ❌       | `"100Mbps"` | Minimum network bandwidth.                                             |
+
+______________________________________________________________________
+
+### `specs.constraints` — Scheduling Constraints
+
+| Field                    | Type         | Required | Example         | Description                                                 |
+| ------------------------ | ------------ | -------- | --------------- | ----------------------------------------------------------- |
+| `supportedArchitectures` | list         | ✅       | `["x86_64"]`    | Compatible CPU/GPU architectures.                           |
+| `trustScore`             | string (1–5) | ❌       | `"4.5"`         | Reliability and security score.                             |
+| `geoLocationRequirement` | string       | ❌       | `"Europe-only"` | Location restrictions.                                      |
+| `isHighlyAvailable`      | boolean      | ❌       | `false`         | Specifies if deployment requires redundancy.                |
+| `faultTolerance`         | string       | ❌       | `"restart"`     | Resiliency strategy (e.g., restart policy).                 |
+| `securityLevel`          | string (1–3) | ❌       | `"high"`        | Security classification (e.g., 3: high, 2: medium, 1: low). |
+| `dataClassification`     | string       | ❌       | `"private"`     | Data sensitivity                                            |
+
+______________________________________________________________________
+
+### `specs.qos` — Quality of Service
+
+| Field                 | Type              | Required | Example     | Description                                     |
+| --------------------- | ----------------- | -------- | ----------- | ----------------------------------------------- |
+| `latencyToleranceMax` | string (ms)       | ❌       | `"150ms"`   | Maximum tolerable latency.                      |
+| `energyCost`          | string (kWh)      | ❌       | `"0.5kWh"`  | Estimated energy consumption per hour.          |
+| `monetaryCost`        | string (currency) | ❌       | `"0.05"`    | Deployment cost per hour.                       |
+| `resilience`          | string            | ❌       | `"restart"` | Tolerance and failure mechanism (e.g., restart) |
+| `availability`        | string (%)        | ❌       | `"99.0%"`   | Uptime SLA target                               |
+| `startupTime`         | string (secs)     | ❌       | `"10s"`     | Time to become operational                      |
+
+> **Note:** `resilience`: Redundant to faultTolerance, will be removed in the next schema version.
+
+______________________________________________________________________
+
+### `status` — Runtime Status (Dynamic)
+
+Unlike the fields above, `status` is not set in the profile — it reflects the runtime state of the application and is updated dynamically.
+
+| Field                        | Type              | Required | Example                  | Description                                           |
+| ---------------------------- | ----------------- | -------- | ------------------------ | ----------------------------------------------------- |
+| `isOnline`                   | boolean           | ✅       | `true`                   | Whether the application is currently active           |
+| `lastHeartBeat`              | string (RFC 3339) | ✅       | `"2026-06-04T12:30:00Z"` | Last time the app sent a status signal                |
+| `runtimeState`               | string            | ✅       | `"running"`              | Current runtime status of app (e.g., running, failed) |
+| `isStateless`                | boolean           | ❌       | `false`                  | Indicates if the application maintains state.         |
+| `resourceUsage.cpu`          | string            | ✅       | `"2000m"`                | CPU usage (e.g., 2000m)                               |
+| `resourceUsage.memory`       | string            | ✅       | `"512Mi"`                | RAM usage                                             |
+| `resourceUsage.storage`      | string            | ✅       | `"1Gi"`                  | Storage consumed                                      |
+| `resourceUsage.gpu`          | integer (≥0)      | ❌       | `0`                      | Number of GPUs consumed                               |
+| `resourceUsage.tpu`          | integer (≥0)      | ❌       | `0`                      | Number of TPUs consumed                               |
+| `resourceUsage.accelerators` | integer (≥0)      | ❌       | `0`                      | Number of FPGAs, ASICs used                           |
+
+______________________________________________________________________
+
+## Examples
+
+See [Cookbook & Examples](https://ide-tutorial.hyperai.di.uoa.gr/cookbook/#native-applications) for minimal native app examples.
+
+# Defining Device Node Applications
+
+An **Application** is a Kubernetes [custom resource](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) that describes a deployable workload:
+
+- an **Android** APK
+- a **Docker image**
+- an **ESP32 firmware** binary
+
+along with the device it should run on and the constraints that govern its deployment.
+
+______________________________________________________________________
+
+## Manifest Structure
+
+Every Application manifest follows the standard Kubernetes resource layout:
+
+```
+apiVersion: hyper.ai/v1
+kind: Application
+metadata:
+  name: my-app
+  annotations:
+    intent: "Computer vision capture"
+spec:
+  # the application definition
+status:
+  # read-only, set by the platform
+```
+
+| Field        | Type   | Required | Description                                        |
+| ------------ | ------ | -------- | -------------------------------------------------- |
+| `apiVersion` | string | ✅       | `hyper.ai/v1`                                      |
+| `kind`       | string | ✅       | `Application`                                      |
+| `metadata`   | object | ✅       | Application metadata — see [`metadata`](#metadata) |
+| `spec`       | object | ✅       | Application Definition — see [`spec`](#spec)       |
+| `status`     | object | ❌       | Set by the platform — see [`status`](#status)      |
+
+______________________________________________________________________
+
+## Field Reference
+
+Below we provide all ***mandatory*** (✅) and ***optional*** (❌) fields that are registered in the Hyper-AI platform. The user can also provide additional fields and attributes, which will be forwarded and be accessible by their application.
+
+### `metadata` — Application Metadata
+
+| Field         | Type              | Required | Example                             |
+| ------------- | ----------------- | -------- | ----------------------------------- |
+| `name`        | string            | ✅       | `"vision-capture-android"`          |
+| `annotations` | map[string]string | ❌       | `intent: "Computer vision capture"` |
+
+______________________________________________________________________
+
+### `spec` — Application Definition
+
+The attributes below are not required. Specifically it is possible to select a Device Node from the IDE UI, and this will fill the `device_name` attribute. Regarding the `device_uuid`, **you should not alter or set it**.
+
+| Field         | Type   | Required | Example                                                                          |
+| ------------- | ------ | -------- | -------------------------------------------------------------------------------- |
+| `device_name` | string | ❌       | `"edge-device-01"` — if omitted, the scheduler selects the best available device |
+| `device_uuid` | string | ❌       | `"40637429-b8ed-4817-b7fd-f32bc6834d9b"` — set automatically by the platform     |
+
+______________________________________________________________________
+
+### `spec.app` — Application Identity
+
+| Field            | Type                                               | Required | Example                                   |
+| ---------------- | -------------------------------------------------- | -------- | ----------------------------------------- |
+| `type`           | string, enum: `device`                             | ✅       | `device`                                  |
+| `schemaVersion`  | string                                             | ✅       | `"1.0.0"`                                 |
+| `name`           | string                                             | ✅       | `"vision-capture"`                        |
+| `version`        | string                                             | ✅       | `"2.3.0"`                                 |
+| `owner`          | string                                             | ✅       | `"Edge Vision Team"`                      |
+| `lifecyclePhase` | string, enum: `development` `testing` `production` | ✅       | `"production"`                            |
+| `description`    | string                                             | ❌       | `"Captures frames and emits detections."` |
+| `parentApp.name` | string                                             | ❌       | `"parent-app"`                            |
+| `parentApp.uid`  | string                                             | ❌       | `"abc-123"`                               |
+
+______________________________________________________________________
+
+### `spec.workload` — Workload Definition
+
+The `workload.kind` field determines which parameter block must be provided: exactly one of `androidApk`, `dockerImage`, or `esp32Binary`, matching the selected kind. Each block has its own set of fields, described below.
+
+| Field  | Type                                                   | Required | Example         |
+| ------ | ------------------------------------------------------ | -------- | --------------- |
+| `kind` | string, enum: `AndroidApk` `DockerImage` `esp32Binary` | ✅       | `"DockerImage"` |
+
+#### AndroidApk
+
+| Field                        | Type                             | Required | Example                              |
+| ---------------------------- | -------------------------------- | -------- | ------------------------------------ |
+| `androidApk.apkUrl`          | string (URI)                     | ✅       | `"https://example.com/app.apk"`      |
+| `androidApk.packageName`     | string                           | ✅       | `"com.example.myapp"`                |
+| `androidApk.sha256`          | string                           | ❌       | `"a3f5c..."`                         |
+| `androidApk.installMode`     | string, enum: `install` `update` | ❌       | `"update"`                           |
+| `androidApk.launch.activity` | string                           | ❌       | `"com.example.myapp/.MainActivity"`  |
+| `androidApk.launch.action`   | string                           | ❌       | `"android.intent.action.MAIN"`       |
+| `androidApk.launch.category` | string                           | ❌       | `"android.intent.category.LAUNCHER"` |
+
+#### DockerImage
+
+| Field                            | Type                                          | Required | Example                  |
+| -------------------------------- | --------------------------------------------- | -------- | ------------------------ |
+| `dockerImage.image`              | string                                        | ✅       | `"nginx:latest"`         |
+| `dockerImage.imagePullPolicy`    | string, enum: `Always` `IfNotPresent` `Never` | ❌       | `"IfNotPresent"`         |
+| `dockerImage.imagePullSecretRef` | string                                        | ❌       | `"registry-credentials"` |
+
+#### esp32Binary
+
+| Field                          | Type                                                                    | Required | Example                              |
+| ------------------------------ | ----------------------------------------------------------------------- | -------- | ------------------------------------ |
+| `esp32Binary.binaryUrl`        | string (URI)                                                            | ✅       | `"https://example.com/firmware.bin"` |
+| `esp32Binary.chip`             | string, enum: `esp32` `esp32s2` `esp32s3` `esp32c3` `esp32c6` `esp32h2` | ✅       | `"esp32s3"`                          |
+| `esp32Binary.flash.method`     | string, enum: `serial` `ota`                                            | ✅       | `"ota"`                              |
+| `esp32Binary.sha256`           | string                                                                  | ❌       | `"b2f4a..."`                         |
+| `esp32Binary.flash.port`       | string                                                                  | ❌       | `"/dev/ttyUSB0"`                     |
+| `esp32Binary.flash.baudRate`   | integer (≥1200)                                                         | ❌       | `115200`                             |
+| `esp32Binary.flash.offset`     | string (hex)                                                            | ❌       | `"0x10000"`                          |
+| `esp32Binary.flash.partition`  | string                                                                  | ❌       | `"app0"`                             |
+| `esp32Binary.flash.eraseFlash` | boolean                                                                 | ❌       | `true`                               |
+
+______________________________________________________________________
+
+### `spec.exec` — Execution Parameters
+
+These attributes can be used to pass environmental variables inside the application deployed.
+
+| Field        | Type              | Required | Example                              |
+| ------------ | ----------------- | -------- | ------------------------------------ |
+| `parameters` | map[string]string | ❌       | `STREAM_URL: "rtsp://10.0.0.5/live"` |
+| `command`    | array of strings  | ❌       | `["/app/start", "--verbose"]`        |
+| `env`        | map[string]string | ❌       | `LOG_LEVEL: "info"`                  |
+| `workingDir` | string            | ❌       | `"/app"`                             |
+
+______________________________________________________________________
+
+### `spec.resources` — Resource Requirements
+
+These are additional attributes for required describing resources. They are important and taken into consideration, in case **the user does not opt for a specific Device Node during submission from the IDE**s (they are used for scheduling the application to the appropriate Device Node).
+
+| Field           | Type                               | Required | Example                |
+| --------------- | ---------------------------------- | -------- | ---------------------- |
+| `cpu.value`     | number                             | ❌       | `250`                  |
+| `cpu.unit`      | string, enum: `cores` `millicores` | ❌       | `"millicores"`         |
+| `memory.value`  | number                             | ❌       | `256`                  |
+| `memory.unit`   | string, enum: `MiB` `GiB` etc.     | ❌       | `"MiB"`                |
+| `storage.value` | number                             | ❌       | `1`                    |
+| `storage.unit`  | string, enum: `GiB` etc.           | ❌       | `"GiB"`                |
+| `gpu`           | integer (≥0)                       | ❌       | `1`                    |
+| `tpu`           | integer (≥0)                       | ❌       | `0`                    |
+| `accelerators`  | array of strings                   | ❌       | `["cuda", "tensorrt"]` |
+
+______________________________________________________________________
+
+### `spec.network` — Network Requirements
+
+| Field                       | Type                                     | Required | Example  |
+| --------------------------- | ---------------------------------------- | -------- | -------- |
+| `ports[].port`              | integer (1–65535)                        | ✅       | `8080`   |
+| `ports[].protocol`          | string                                   | ✅       | `"HTTP"` |
+| `networkBandwidthMin.value` | number                                   | ✅       | `10`     |
+| `networkBandwidthMin.unit`  | string, enum: `bps` `Kbps` `Mbps` `Gbps` | ✅       | `"Mbps"` |
+
+______________________________________________________________________
+
+### `spec.qos` — Quality of Service
+
+| Field                       | Type                                         | Required | Example          |
+| --------------------------- | -------------------------------------------- | -------- | ---------------- |
+| `latencyToleranceMax.value` | number                                       | ✅       | `150`            |
+| `latencyToleranceMax.unit`  | string, enum: `ms` `s`                       | ✅       | `"ms"`           |
+| `energyCost.value`          | number                                       | ✅       | `5`              |
+| `energyCost.unit`           | string, enum: `mW` `W`                       | ✅       | `"W"`            |
+| `monetaryCost.value`        | number                                       | ✅       | `0.05`           |
+| `monetaryCost.currency`     | string                                       | ✅       | `"USD"`          |
+| `monetaryCost.per`          | string, enum: `second` `minute` `hour` `day` | ✅       | `"hour"`         |
+| `resilience`                | string                                       | ✅       | `"auto-restart"` |
+| `availability.value`        | number (0–1)                                 | ✅       | `0.95`           |
+| `availability.unit`         | string, enum: `fraction`                     | ✅       | `"fraction"`     |
+| `startupTime.value`         | number                                       | ✅       | `3`              |
+| `startupTime.unit`          | string, enum: `ms` `s`                       | ✅       | `"s"`            |
+
+______________________________________________________________________
+
+### `spec.constraints` — Scheduling Constraints
+
+| Field                    | Type             | Required | Example                  |
+| ------------------------ | ---------------- | -------- | ------------------------ |
+| `schedulingPriority`     | integer          | ✅       | `5`                      |
+| `supportedArchitectures` | array of strings | ✅       | `["arm64-v8a", "amd64"]` |
+| `geoLocationRequirement` | string           | ✅       | `"LocalZone"`            |
+| `isHighlyAvailable`      | boolean          | ✅       | `false`                  |
+| `faultTolerance`         | string           | ✅       | `"graceful-degradation"` |
+| `dataClassification`     | string           | ✅       | `"private"`              |
+| `trustScore`             | number (≥0)      | ❌       | `90.0`                   |
+| `batteryLevelMin`        | integer (0–100)  | ❌       | `20`                     |
+| `securityLevel`          | string           | ❌       | `"high"`                 |
+
+______________________________________________________________________
+
+### `spec.sensors` — Sensor Requirements
+
+| Field          | Type                                       | Required | Example          |
+| -------------- | ------------------------------------------ | -------- | ---------------- |
+| `sensorType`   | string                                     | ✅       | `"temperature"`  |
+| `isActive`     | boolean                                    | ✅       | `true`           |
+| `taskStatus`   | string, enum: `IDLE` `RUNNING` `SCHEDULED` | ✅       | `"IDLE"`         |
+| `sensorIDs`    | array of strings                           | ❌       | `["sensor-001"]` |
+| `platformInfo` | string                                     | ❌       | `"i2c-bus-1"`    |
+
+______________________________________________________________________
+
+### `spec.runtime` — Runtime Requirements
+
+| Field                       | Type   | Required | Example    |
+| --------------------------- | ------ | -------- | ---------- |
+| `baseOS.name`               | string | ❌       | `"Ubuntu"` |
+| `baseOS.version`            | string | ❌       | `"22.04"`  |
+| `acceleratorRuntime[].name` | string | ❌       | `"cuda"`   |
+| `hypervisor`                | string | ❌       | `"kvm"`    |
+
+______________________________________________________________________
+
+### `spec` — Miscellaneous
+
+| Field         | Type             | Required | Example                                                         |
+| ------------- | ---------------- | -------- | --------------------------------------------------------------- |
+| `logs_url`    | string (URI)     | ❌       | `"https://logs.example.com/my-app"`                             |
+| `metrics_url` | string (URI)     | ❌       | `"https://metrics.example.com/my-app"`                          |
+| `config`      | free-form object | ❌       | see [Custom Configuration Fields](#custom-configuration-fields) |
+
+______________________________________________________________________
+
+### `status` — Deployment Status (Read-only)
+
+Unlike the `spec` fields above, `status` is not set by the user. The platform updates `status.phase` automatically as the application progresses through its lifecycle:
+
+| Phase       | Meaning                                                 |
+| ----------- | ------------------------------------------------------- |
+| `pending`   | Deployment requested, waiting for device ACK            |
+| `scheduled` | Device selected, workload being sent                    |
+| `deployed`  | Device acknowledged successful deployment               |
+| `failed`    | Deployment failed or timed out                          |
+| `removed`   | Application was deleted and device acknowledged removal |
+
+______________________________________________________________________
+
+## Custom Configuration Fields
+
+> **Note:** The `spec.config` field accepts any key-value structure, allowing you to pass arbitrary configuration to your application without modifying the schema. This is useful for application-specific settings that don't fit into the standard fields.
+
+Examples:
+
+```
+spec:
+  config:
+    mqtt_broker: "mqtt://edge-broker:1883"
+    sampling_rate: "100ms"
+    model_path: "/models/person-v3.onnx"
+    debug: "true"
+```
+
+```
+spec:
+  config:
+    camera_index: "0"
+    resolution: "1920x1080"
+    output_topic: "detections/camera-0"
+```
+
+______________________________________________________________________
+
+## Examples
+
+See [Cookbook & Examples](https://ide-tutorial.hyperai.di.uoa.gr/cookbook/#device-applications) for minimal device app examples.
+# Examples
+
+# Cookbook & Examples
+
+Recipes and examples for building complex workflows including native and device applications.
+
+## Native Applications
+
+The examples below are native Applications — workloads defined through an application profile. All available attributes are explained in the [Native Apps reference](https://ide-tutorial.hyperai.di.uoa.gr/dsl/native-apps/index.md).
+
+### Hello World Web Server — nginx
+
+A workflow that deploys an nginx server. The user expresses their preferences through specific constraints and QoS requirements.
+
+```
+applicationProfile:
+  metadata:
+    type: "native"
+    schemaVersion: "1.1.0"
+    name: "hello-world-webserver"
+    version: "1.0.0"
+    description: "Nginx web server for HyperAI platform assessment."
+    owner: "UoA-Team"
+    lifecyclePhase: "development"
+    annotations:
+      intent: "platform-demo"
+      domain: "education"
+      language: "Python 3.10"
+      dependencies: ["fastapi", "uvicorn"]
+
+  specs:
+    runtime:
+      executionType: "container"
+      entryPoint: "uvicorn"
+      args: ["main:app", "--host", "0.0.0.0", "--port", "8000"]
+      baseOS:
+        name: "python"
+        version: "3.10-slim"
+      containerImage:
+        uri: "nginx"
+        tag: "latest"
+
+    resources:
+      cpu: "2000m"
+      memory: "10Gi"
+      storage: "1Gi"
+
+    network:
+      ports:
+        - port: 8000
+          protocol: "TCP"
+          publicExposure: true
+      protocols: ["HTTP"]
+
+    constraints:
+      supportedArchitectures: ["x86_64", "arm64"]
+      securityLevel: "high"
+      dataClassification: "private"
+      isHighlyAvailable: false
+
+    qos:
+      startupTime: "10s"
+      availability: "99.0%"
+```
+
+## Device Applications
+
+The examples below are device Applications — workloads deployed to Device Nodes across the edge. All available attributes are explained in the [Device Apps reference](https://ide-tutorial.hyperai.di.uoa.gr/dsl/devices/index.md).
+
+### Hello World — Docker
+
+A minimal Docker application built on the [hello-world](https://hub.docker.com/_/hello-world) image. `device_name` is intentionally omitted — the platform scheduler automatically selects the best available device with Docker support.
+
+```
+apiVersion: hyper.ai/v1
+kind: Application
+metadata:
+  name: hello-world
+  annotations:
+    intent: "Hello World test"
+    domain: "edge-testing"
+spec:
+  app:
+    type: device
+    schemaVersion: "1.0.0"
+    name: "hello-world"
+    version: "1.0.0"
+    description: "Hello World Docker image for basic connectivity testing."
+    owner: "HyperAI Team"
+    lifecyclePhase: "testing"
+  workload:
+    kind: DockerImage
+    dockerImage:
+      image: "hello-world"
+      imagePullPolicy: "IfNotPresent"
+  exec:
+    parameters:
+      MODE: "test"
+  network:
+    ports:
+      - port: 80
+        protocol: "HTTP"
+    networkBandwidthMin: { value: 1, unit: "Mbps" }
+  qos:
+    latencyToleranceMax: { value: 500, unit: "ms" }
+    energyCost: { value: 1, unit: "W" }
+    monetaryCost: { value: 0.01, currency: "USD", per: "hour" }
+    resilience: "auto-restart"
+    availability: { value: 0.90, unit: "fraction" }
+    startupTime: { value: 5, unit: "s" }
+  constraints:
+    schedulingPriority: 1
+    supportedArchitectures: ["amd64", "arm64"]
+    geoLocationRequirement: "LocalZone"
+    isHighlyAvailable: false
+    faultTolerance: "graceful-degradation"
+    dataClassification: "internal"
+```
+
+### Hello World — Android APK
+
+An Android APK application that install a simple Hello World apk. Demonstrates Android workload configuration including APK URL, package name, launch intent, and execution parameters. Targets a specific device by name.
+
+```
+apiVersion: hyper.ai/v1
+kind: Application
+metadata:
+  name: hello-world-android
+  annotations:
+    intent: "Hello World Android test"
+    domain: "edge-testing"
+spec:
+  device_name: device-sdk-gphone64-arm64-3a646c203ef4e9df
+  app:
+    type: device
+    schemaVersion: "1.0.0"
+    name: "hello-world-android"
+    version: "1.0.0"
+    description: "Test APK deployment to Android device via HyperAI Open Connectors."
+    owner: "HyperAI Team"
+    lifecyclePhase: "testing"
+  workload:
+    kind: AndroidApk
+    androidApk:
+      apkUrl: "https://gitlab.eclipse.org/eclipse-research-labs/hyper-ai-project/open-connectors/-/raw/master/android/test-target-debug.apk"
+      packageName: "com.example.testtarget"
+      installMode: "install"
+  network:
+    ports:
+      - port: 80
+        protocol: "HTTP"
+    networkBandwidthMin: { value: 1, unit: "Mbps" }
+  qos:
+    latencyToleranceMax: { value: 500, unit: "ms" }
+    energyCost: { value: 1, unit: "W" }
+    monetaryCost: { value: 0.01, currency: "USD", per: "hour" }
+    resilience: "auto-restart"
+    availability: { value: 0.90, unit: "fraction" }
+    startupTime: { value: 5, unit: "s" }
+  constraints:
+    schedulingPriority: 1
+    supportedArchitectures: ["arm64-v8a"]
+    geoLocationRequirement: "LocalZone"
+    isHighlyAvailable: false
+    faultTolerance: "graceful-degradation"
+    dataClassification: "internal"
+```
+
+> **Note:** Replace `<your-device-name>` with the name of a registered Android DeviceNode.
+# Hackathon
+
+# Hyperion Actions
+
+How your agent talks back to the HyperAI IDE and performs actions.
+
+## How it works
+
+Every time the user types in the Hyperion panel, the IDE sends your agent a request:
+
+```
+{ 
+    "user_id": "3f2a9c11-...", 
+    "text": "Please create a folder for me" 
+}
+```
+
+- `user_id` is a UUID generated by the IDE — use it to keep per-user session memory
+- `text` is what the user typed.
+
+Your agent answers with a stream of Server-Sent Events. Each event is a `data:` line holding one JSON object, followed by a blank line. There are two kinds of event, and the IDE treats them very differently.
+
+## Streaming text
+
+Anything you stream as `response` shows up in the Hyperion panel as the assistant's message:
+
+```
+data: {"response": "Creating the folder "}
+
+data: {"response": "for you."}
+```
+
+Each chunk is an **increment**, not the whole message — the IDE appends them one after the other, which is what produces the typing effect. The message is complete when your response body closes.
+
+## Sending an action
+
+When you want the agent to actually *do* something in the IDE, stream an event with an **`action`** key instead of the `response` key used for [streaming text](#streaming-text):
+
+```
+data: {"action": "create_folder", "path": "demo/sub"}
+```
+
+The IDE executes it and prints nothing for it. If you want to tell the user what the action did, you have to stream that text yourself as `response` events (see [Streaming text](#streaming-text)):
+
+```
+data: {"response": "I'll create the folder "}
+
+data: {"response": "`demo/sub` for you."}
+
+data: {"action": "create_folder", "path": "demo/sub"}
+
+data: {"response": " Done — you can see it in the file explorer."}
+```
+
+Actions and text can come in any order, and you can send several actions in one answer.
+
+## Available actions
+
+| Action          | Payload           | What the IDE does                                                      | Example                                                                                      |
+| --------------- | ----------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `create_folder` | `path`            | Creates the folder.                                                    | `{"action":"create_folder","path":"demo/sub"}`                                               |
+| `delete_folder` | `path`            | Deletes the folder.                                                    | `{"action":"delete_folder","path":"demo"}`                                                   |
+| `create_file`   | `path`, `content` | Creates the file and opens it in the editor.                           | `{"action":"create_file","path":"demo/nginx.yaml","content":"apiVersion: hyper.ai/v1\n..."}` |
+| `edit_file`     | `path`, `content` | Finds the file and **replaces it whole**, then opens it in the editor. | `{"action":"edit_file","path":"nginx.yaml","content":"apiVersion: hyper.ai/v1\n..."}`        |
+| `delete_file`   | `path`            | Deletes the file.                                                      | `{"action":"delete_file","path":"nginx.yaml"}`                                               |
+
+`path` is always relative to the workspace root — never absolute, never `..`.
+
+For `delete_file`, `edit_file` and `delete_folder` you do not need to give the whole path — send just the name and the IDE searches the workspace and uses the **first match**. If you do specify a path, it is taken into account and used as-is.
+
+## Reading a file — the `read_file` helper
+
+Reading a file is deliberately **not** an action. To see what is inside a file, your agent asks the IDE backend directly over HTTP.
+
+The starter ships that call as a helper in `helpers.py`:
+
+```
+from helpers import read_file
+
+content = await read_file("app.yaml")
+```
+
+It returns the file as a **plain string**.
+
+- The `path` argument is either a full path (`demo/sub/app.yaml`) or just a file name. Send only the name and the backend searches the whole workspace for it, the same way `delete_file` does.
+
+Errors
+
+On failure it raises `ReadFileError`. Possible causes are several files share that name (all of them listed, so you can ask the user which one), or the backend is unreachable.
+
+**Under the hood** `read_file` is one `GET` against the IDE backend:
+
+```
+GET http://localhost:3001/api/agent/file?path=app.yaml
+GET http://localhost:3001/api/agent/file?path=demo/app.yaml
+```
+
+Slashes are allowed as-is in the query string, so a full path needs no special treatment (`demo%2Fapp.yaml` is accepted too).
+
+| Status | Body                                                                                  |
+| ------ | ------------------------------------------------------------------------------------- |
+| `200`  | `{"path": "demo/sub/app.yaml", "content": "..."}` — `path` is where it actually lives |
+| `404`  | `{"error": "File not found"}`                                                         |
+| `409`  | `{"error": "Ambiguous file name", "matches": [...]}`                                  |
+
+## Validating a file — the `validate_file` helper
+
+Validating is **not** an action either. Your agent asks the IDE backend to check a file against the [Native Apps](https://ide-tutorial.hyperai.di.uoa.gr/dsl/native-apps/index.md) or [Device Apps](https://ide-tutorial.hyperai.di.uoa.gr/dsl/devices/index.md) rules. You send only the path — the backend reads the file itself.
+
+```
+from helpers import validate_file
+
+report = await validate_file("app.yaml")
+```
+
+It returns the report as a **dict**:
+
+```
+{
+    "path": "demo/app.yaml",
+    "type": "device",
+    "valid": false,
+    "errors": [
+        {"line": 3, "column": 1, "endLine": 3, "endColumn": 9, "field": "metadata.name", "message": "is required"}
+    ],
+    "warnings": [
+        {"line": 12, "column": 5, "endLine": 12, "endColumn": 12, "field": "spec.exec.retries", "message": "unknown field, not part of the schema"}
+    ]
+}
+```
+
+- `type` is `native` or `device`.
+- `valid` is `false` as soon as there is one error.
+- `line` and `column` point at the problem. For a missing field they point at the section where it should be added.
+
+The `path` works the same way as in [`read_file`](#reading-a-file-the-read_file-helper) — a full path or just a name.
+
+Errors
+
+On failure it raises `ValidateFileError`, for the same reasons as `read_file`. An invalid file is **not** an error — you get the report with `valid: false`.
+
+**Under the hood** `validate_file` is one `GET` against the IDE backend:
+
+```
+GET http://localhost:3001/api/agent/validation/file?path=app.yaml
+```
+
+| Status | Body                                                 |
+| ------ | ---------------------------------------------------- |
+| `200`  | the report                                           |
+| `404`  | `{"error": "File not found"}`                        |
+| `409`  | `{"error": "Ambiguous file name", "matches": [...]}` |
+
+Local vs Docker
+
+If you have followed the challenge description, then when you run the agent locally the `ide-backend` is at `http://localhost:3001/api`. When the agent runs as a Docker container, the backend must be `http://host.docker.internal:3001/api` instead.
+
+In the [hyperion-starter](https://gitlab.eclipse.org/eclipse-research-labs/hyper-ai-project/hyperion-starter) this is already set in the `Dockerfile`, so nothing to change:
+
+```
+git clone https://gitlab.eclipse.org/eclipse-research-labs/hyper-ai-project/hyperion-starter.git
+```
